@@ -131,10 +131,19 @@ impl<'a> Serializer for &'a mut SerbfSerializer {
     }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok, Self::Error> {
-        let mut buf = [0; 4];
-        let str = v.encode_utf8(&mut buf);
+        let v = v.to_string();
 
-        self.serialize_str(&str)
+        match self.buf.write_usize_varint(v.len()) {
+            Ok(_) => {}
+            Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
+        };
+
+        match self.buf.write_all(v.as_bytes()) {
+            Ok(_) => {}
+            Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
+        };
+
+        Ok(())
     }
 
     fn serialize_str(mut self, v: &str) -> Result<Self::Ok, Self::Error> {
@@ -166,20 +175,14 @@ impl<'a> Serializer for &'a mut SerbfSerializer {
     }
 
     fn serialize_none(mut self) -> Result<Self::Ok, Self::Error> {
-        match self.buf.write_u8(0) {
-            Ok(_) => { Ok(()) }
-            Err(e) => { Err(SerbfError::IOError(Arc::new(e))) }
-        }
+        self.serialize_bool(false)
     }
 
     fn serialize_some<T>(mut self, value: &T) -> Result<Self::Ok, Self::Error>
     where
         T: ?Sized + Serialize
     {
-        match self.buf.write_u8(1) {
-            Ok(_) => { }
-            Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
-        };
+        self.serialize_bool(true)?;
 
         value.serialize(self)
     }
@@ -221,6 +224,16 @@ impl<'a> Serializer for &'a mut SerbfSerializer {
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq, Self::Error> {
+        let len = match len {
+            None => { return Err(SerbfError::UnknownSize) }
+            Some(v) => { v }
+        };
+
+        match self.buf.write_usize_varint(len) {
+            Ok(_) => {}
+            Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
+        }
+
         Ok(self)
     }
 
