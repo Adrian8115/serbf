@@ -6,5 +6,6 @@ edition = "2021"
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 byteorder = "1.5"
+bytemuck = "1.16"
 thiserror = "1.0"
 varint-rs = "2.2"
