@@ -138,7 +138,7 @@ impl<'a> Serializer for &'a mut SerbfSerializer {
             Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
         };
 
-        match self.buf.write_all(v.as_bytes()) {
+        match self.buf.write_all(v.to_string().as_bytes()) {
             Ok(_) => {}
             Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
         };

@@ -24,7 +24,7 @@ impl<'a> SerbfDeserializer<'a> {
     }
 }
 
-impl<'de> Deserializer<'de> for &'de mut SerbfDeserializer<'de> {
+impl<'de, 'a> Deserializer<'de> for &'a mut SerbfDeserializer<'de> {
     type Error = SerbfError;
 
     fn deserialize_any<V>(mut self, visitor: V) -> Result<V::Value, Self::Error>
@@ -201,7 +201,7 @@ impl<'de> Deserializer<'de> for &'de mut SerbfDeserializer<'de> {
             Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
         };
 
-        let mut vec = Vec::with_capacity(len);
+        let mut vec = vec![0; len];
 
         match self.buf.read_exact(vec.as_mut_slice()) {
             Ok(_) => {}
@@ -228,17 +228,21 @@ impl<'de> Deserializer<'de> for &'de mut SerbfDeserializer<'de> {
             Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
         };
 
-        let mut vec = Vec::with_capacity(len);
+        let mut vec = vec![0; len];
 
         match self.buf.read_exact(vec.as_mut_slice()) {
             Ok(_) => {}
             Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
         };
 
-        match String::from_utf8(vec) {
-            Ok(v) => { visitor.visit_str(v.as_str()) }
-            Err(e) => { Err(SerbfError::UTF8Error(e)) }
-        }
+        let string = match String::from_utf8(vec) {
+            Ok(v) => { v }
+            Err(e) => { return Err(SerbfError::UTF8Error(e)) }
+        };
+
+        let str= string.as_str();
+
+        visitor.visit_borrowed_str(str)
     }
 
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -250,7 +254,7 @@ impl<'de> Deserializer<'de> for &'de mut SerbfDeserializer<'de> {
             Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
         };
 
-        let mut vec = Vec::with_capacity(len);
+        let mut vec = vec![0; len];
 
         match self.buf.read_exact(vec.as_mut_slice()) {
             Ok(_) => {}
@@ -272,7 +276,7 @@ impl<'de> Deserializer<'de> for &'de mut SerbfDeserializer<'de> {
             Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
         };
 
-        let mut vec = Vec::with_capacity(len);
+        let mut vec = vec![0; len];
 
         match self.buf.read_exact(vec.as_mut_slice()) {
             Ok(_) => {}
@@ -291,7 +295,7 @@ impl<'de> Deserializer<'de> for &'de mut SerbfDeserializer<'de> {
             Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
         };
 
-        let mut vec = Vec::with_capacity(len);
+        let mut vec = vec![0; len];
 
         match self.buf.read_exact(vec.as_mut_slice()) {
             Ok(_) => {}
@@ -345,7 +349,7 @@ impl<'de> Deserializer<'de> for &'de mut SerbfDeserializer<'de> {
             Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
         };
 
-        visitor.visit_seq(SerbfSeqDeserializer::new(self, len))
+        visitor.visit_seq(SerbfSeperatedDeserializer::new(self, len))
     }
 
     fn deserialize_tuple<V>(mut self, len: usize, visitor: V) -> Result<V::Value, Self::Error>
@@ -357,7 +361,7 @@ impl<'de> Deserializer<'de> for &'de mut SerbfDeserializer<'de> {
             Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
         };
 
-        visitor.visit_seq(&mut SerbfSeqDeserializer::new(self, len))
+        visitor.visit_seq(&mut SerbfSeperatedDeserializer::new(self, len))
     }
 
     fn deserialize_tuple_struct<V>(mut self, name: &'static str, len: usize, visitor: V) -> Result<V::Value, Self::Error>
@@ -369,7 +373,7 @@ impl<'de> Deserializer<'de> for &'de mut SerbfDeserializer<'de> {
             Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
         };
 
-        visitor.visit_seq(&mut SerbfSeqDeserializer::new(self, len))
+        visitor.visit_seq(&mut SerbfSeperatedDeserializer::new(self, len))
     }
 
     fn deserialize_map<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -383,7 +387,7 @@ impl<'de> Deserializer<'de> for &'de mut SerbfDeserializer<'de> {
     where
         V: Visitor<'de>
     {
-        todo!()
+        visitor.visit_seq(&mut SerbfSeperatedDeserializer::new(self, fields.len()))
     }
 
     fn deserialize_enum<V>(self, name: &'static str, variants: &'static [&'static str], visitor: V) -> Result<V::Value, Self::Error>
@@ -412,14 +416,14 @@ impl<'de> Deserializer<'de> for &'de mut SerbfDeserializer<'de> {
     }
 }
 
-struct SerbfSeqDeserializer<'a> {
-    serbf_deserializer: &'a mut SerbfDeserializer<'a>,
+struct SerbfSeperatedDeserializer<'a, 'de: 'a> {
+    serbf_deserializer: &'a mut SerbfDeserializer<'de>,
 
     len: usize,
     current_index: usize,
 }
 
-impl<'de, 'a> SerbfSeqDeserializer<'de> {
+impl<'a, 'de> SerbfSeperatedDeserializer<'a, 'de> {
     pub fn new(serbf_deserializer: &'a mut SerbfDeserializer<'de>, len: usize) -> Self {
         Self {
             serbf_deserializer,
@@ -429,7 +433,7 @@ impl<'de, 'a> SerbfSeqDeserializer<'de> {
     }
 }
 
-impl<'de> SeqAccess<'de> for SerbfSeqDeserializer<'de> {
+impl<'de, 'a> SeqAccess<'de> for SerbfSeperatedDeserializer<'a, 'de> {
     type Error = SerbfError;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Self::Error>
@@ -439,7 +443,7 @@ impl<'de> SeqAccess<'de> for SerbfSeqDeserializer<'de> {
         self.current_index += 1;
 
         match self.current_index > self.len {
-            false => { Ok(Some(seed.deserialize(self.serbf_deserializer)?)) }
+            false => { seed.deserialize(&mut *self.serbf_deserializer).map(Some) }
             true => { Ok(None) }
         }
     }
@@ -449,14 +453,9 @@ impl<'de> SeqAccess<'de> for SerbfSeqDeserializer<'de> {
     }
 }
 
-struct SerbfMapDeserializer<'a> {
-    serbf_deserializer: &'a mut SerbfDeserializer<'a>,
 
-    len: usize,
-    current_index: usize,
-}
 
-impl<'de> MapAccess<'de> for &'de mut SerbfMapDeserializer<'de> {
+impl<'de, 'a> MapAccess<'de> for &'de mut SerbfSeperatedDeserializer<'a, 'de> {
     type Error = SerbfError;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>, Self::Error>
@@ -466,7 +465,7 @@ impl<'de> MapAccess<'de> for &'de mut SerbfMapDeserializer<'de> {
         self.current_index += 1;
 
         match self.current_index > self.len {
-            false => { Ok(Some(seed.deserialize(self.serbf_deserializer)?)) }
+            false => { seed.deserialize(&mut *self.serbf_deserializer).map(Some) }
             true => { Ok(None) }
         }
     }
@@ -475,7 +474,7 @@ impl<'de> MapAccess<'de> for &'de mut SerbfMapDeserializer<'de> {
     where
         V: DeserializeSeed<'de>
     {
-        seed.deserialize(self.serbf_deserializer)
+        seed.deserialize(&mut *self.serbf_deserializer)
     }
 
     fn size_hint(&self) -> Option<usize> {
