@@ -238,18 +238,43 @@ impl<'a> Serializer for &'a mut SerbfSerializer {
     }
 
     fn serialize_tuple(self, len: usize) -> Result<Self::SerializeTuple, Self::Error> {
+        match self.buf.write_usize_varint(len) {
+            Ok(_) => {}
+            Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
+        }
+
         Ok(self)
     }
 
     fn serialize_tuple_struct(self, name: &'static str, len: usize) -> Result<Self::SerializeTupleStruct, Self::Error> {
+        match self.buf.write_usize_varint(len) {
+            Ok(_) => {}
+            Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
+        }
+
         Ok(self)
     }
 
     fn serialize_tuple_variant(self, name: &'static str, variant_index: u32, variant: &'static str, len: usize) -> Result<Self::SerializeTupleVariant, Self::Error> {
+        match self.buf.write_usize_varint(len) {
+            Ok(_) => {}
+            Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
+        }
+
         Ok(self)
     }
 
     fn serialize_map(self, len: Option<usize>) -> Result<Self::SerializeMap, Self::Error> {
+        let len = match len {
+            None => { return Err(SerbfError::UnknownSize) }
+            Some(v) => { v }
+        };
+
+        match self.buf.write_usize_varint(len) {
+            Ok(_) => {}
+            Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
+        }
+
         Ok(self)
     }
 
