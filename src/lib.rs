@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use serde::ser::SerializeMap;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use crate::ser::SerbfSerializer;
 
 mod ser;
@@ -9,7 +9,7 @@ mod de;
 
 #[test]
 fn test() {
-    #[derive(Serialize)]
+    #[derive(Serialize, Deserialize)]
     struct TestStruct {
         num_u8: u8,
         num_u16: u16,
@@ -66,5 +66,7 @@ fn test() {
 
     testy.serialize(&mut serializer).unwrap();
 
-    println!("{:?}", serializer.into_inner());
+    let buf = serializer.into_inner();
+
+    println!("{:?}", buf);
 }
