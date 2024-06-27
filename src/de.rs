@@ -223,26 +223,24 @@ impl<'de, 'a> Deserializer<'de> for &'a mut SerbfDeserializer<'de> {
     where
         V: Visitor<'de>
     {
-        let len = match self.buf.read_usize_varint() {
-            Ok(v) => { v }
-            Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
-        };
+            let len = match self.buf.read_usize_varint() {
+                Ok(v) => { v }
+                Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
+            };
 
-        let mut vec = vec![0; len];
+            let mut vec = vec![0; len];
 
-        match self.buf.read_exact(vec.as_mut_slice()) {
-            Ok(_) => {}
-            Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
-        };
+            match self.buf.read_exact(vec.as_mut_slice()) {
+                Ok(_) => {}
+                Err(e) => { return Err(SerbfError::IOError(Arc::new(e))) }
+            };
 
-        let string = match String::from_utf8(vec) {
-            Ok(v) => { v }
-            Err(e) => { return Err(SerbfError::UTF8Error(e)) }
-        };
+            let string = match String::from_utf8(vec) {
+                Ok(v) => { v }
+                Err(e) => { return Err(SerbfError::UTF8Error(e)) }
+            };
 
-        let str= string.as_str();
-
-        visitor.visit_borrowed_str(str)
+            visitor.visit_borrowed_str(string.as_str())
     }
 
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, Self::Error>
