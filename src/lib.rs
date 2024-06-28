@@ -92,11 +92,11 @@ fn de() {
         char: char,
         str: &'static str,
         //string: String,
-//
+
         //some: Option<u8>,
-//
+
         //vec: Vec<u8>,
-//
+
         //tuple: (u32, i32),
         //
         // map: HashMap<String, u32>,
@@ -115,8 +115,8 @@ fn de() {
         num_i128: -42,
         boolean: true,
         char: 'C',
-        str: "Halloea Friend",
-        //string: "Nuauan".to_string(),
+        str: "test_slice",
+        //string: "test string".to_string(),
         //some: Some(42),
         //vec: vec![42, 41, 67, 69, 1, 3, 5, 6, 99, 0, 255],
         //tuple: (69, 69),

@@ -240,7 +240,7 @@ impl<'de, 'a> Deserializer<'de> for &'a mut SerbfDeserializer<'de> {
                 Err(e) => { return Err(SerbfError::UTF8Error(e)) }
             };
 
-            visitor.visit_borrowed_str(string.as_str())
+            visitor.visit_str(string.as_str())
     }
 
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, Self::Error>
